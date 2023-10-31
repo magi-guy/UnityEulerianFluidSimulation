@@ -8,6 +8,7 @@ public class CsToCamera : MonoBehaviour
     [SerializeField] private int width = 256;
     [SerializeField] private int height = 256;
 
+    public int test;
     public RenderTexture texture;
 
     void Start()
@@ -18,6 +19,7 @@ public class CsToCamera : MonoBehaviour
 
         int kernel = compute.FindKernel("CSMain");
         compute.SetTexture(kernel, "Result", texture);
+        compute.SetInt("test", test);
         compute.Dispatch(kernel, width/8, height/8, 1);
     }
 

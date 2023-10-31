@@ -16,8 +16,9 @@ public class CsToCamera : MonoBehaviour
         texture.enableRandomWrite = true;
         texture.Create();
 
-        compute.SetTexture(0, "Result", texture);
-        compute.Dispatch(0, width/4, height/4, 1);
+        int kernel = compute.FindKernel("CSMain");
+        compute.SetTexture(kernel, "Result", texture);
+        compute.Dispatch(kernel, width/8, height/8, 1);
     }
 
     // void OnRenderImage(RenderTexture src, RenderTexture dest)

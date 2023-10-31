@@ -4,14 +4,37 @@ using UnityEngine;
 
 public class CsToCamera : MonoBehaviour
 {
-    [SerializeField] private int compute;
-    // Start is called before the first frame update
+    [SerializeField] private ComputeShader compute;
+    [SerializeField] private int width = 256;
+    [SerializeField] private int height = 256;
+
+    public RenderTexture texture;
+
     void Start()
     {
-        
+        texture = new RenderTexture(width, height, 24);
+        texture.enableRandomWrite = true;
+        texture.Create();
+
+        compute.SetTexture(0, "Result", texture);
+        compute.Dispatch(0, width/4, height/4, 1);
     }
 
-    // Update is called once per frame
+    // void OnRenderImage(RenderTexture src, RenderTexture dest)
+    // {
+    //     if(texture == null) {
+    //         texture = new RenderTexture(width, height, 24);
+    //         texture.enableRandomWrite = true;
+    //         texture.Create();
+    //     }
+    //     compute.SetTexture(0, "Result", texture);
+    //     compute.SetFloat("width", width);
+    //     compute.SetFloat("height", height);
+    //     compute.Dispatch(0, width/8, height/8, 1);
+
+    //     Graphics.Blit(texture, dest);
+    // }
+
     void Update()
     {
         

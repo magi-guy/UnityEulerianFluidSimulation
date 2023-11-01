@@ -35,8 +35,8 @@ public class CsToCamera : MonoBehaviour
         compute.SetTexture(0, "Result", texture);
         compute.SetFloat("width", width);
         compute.SetFloat("height", height);
-	time += Time.deltaTime; Debug.Log(time);
-	compute.SetFloat("time", time);
+	    time += Time.deltaTime; Debug.Log(time);
+	    compute.SetFloat("time", time);
         compute.Dispatch(0, width/8, height/8, 1);
 
         Graphics.Blit(texture, dest);

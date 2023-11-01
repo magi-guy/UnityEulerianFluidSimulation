@@ -21,7 +21,7 @@ public class CsToCamera : MonoBehaviour
 
         int kernel = compute.FindKernel("CSMain");
         compute.SetTexture(kernel, "Result", texture);
-        compute.Dispatch(kernel, width, height, 1);
+        compute.Dispatch(kernel, width/8, height/8, 1);
     }
 
     // void OnRenderImage(RenderTexture src, RenderTexture dest)

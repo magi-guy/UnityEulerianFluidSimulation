@@ -8,6 +8,7 @@ public class CsToCamera : MonoBehaviour
     [SerializeField] private BoundaryType boundaryType;
     [SerializeField] private int width = 256;
     [SerializeField] private int height = 256;
+    [SerializeField] private float diffusion = .6f;
 
     enum BoundaryType { Wall, Wrap }
 
@@ -30,9 +31,11 @@ public class CsToCamera : MonoBehaviour
         fluid.Create();
 
         // Set variables
+        compute.SetFloat("time", time);
         compute.SetFloat("width", width);
         compute.SetFloat("height", height);
-	    compute.SetFloat("time", time);
+        compute.SetFloat("diff", diffusion);
+	    
 
         // Create an environment
         compute.SetTexture(testShader, "Result", fluid);

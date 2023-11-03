@@ -2,30 +2,37 @@
 #pragma kernel CalculateDensity
 
 RWTexture2D<float4> Result; // density, velocity.x, velocity.y, empty
+float time;
 float width;
 float height;
-float time;
+float diff;
 
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    Result[id.xy] = float4(id.x/width, id.y/height, sin(time/1.0)/2.0 + 0.5, 1.0);
+    float1 widthMod = width/32.0;
+    Result[id.xy] = float4(ceil(sin(id.x/widthMod)), 0.0, 0.0, 1.0);
 }
 
 [numthreads(8,8,1)]
 void CalculateDensity (uint3 id : SV_DISPATCHTHREADID)
 {
-    if(id.x < 1 || id.y < 1 || id.x + 2 > (uint)width || id.y + 2 > (uint)width) {
+    if(id.x == 0 || id.y == 0 || id.x == (uint)width-1 || id.y == (uint)width-1) {
         Result[id.xy] = float4(0.0, 0.0, 0.0, 1.0);
     } else {
-        float1 density = Result[uint2(id.x-1, id.y)].x + Result[uint2(id.x, id.y-1)].x + Result[uint2(id.x+1, id.y)].x + Result[uint2(id.x, id.y+1)].x;
-        //if(ix.xy == uint2(1,1) || ix.xy == uint2((uint)width-2,1) || ix.xy == uint2(1,(uint)height-2) || ix.xy == uint2((uint)width-2,(uint)height-2)) {
-        //    density /= 2.0;
-        //} else if() {
-        //    density /= 3.0;
-        //} else {
-            density /= 4.0;
-        //}
-        Result[id.xy] = float4(density, 0.0, 0.0, 1.0);
+        float1 avgDensity = Result[uint2(id.x-1, id.y)].x + Result[uint2(id.x, id.y-1)].x + Result[uint2(id.x+1, id.y)].x + Result[uint2(id.x, id.y+1)].x;
+        if(
+        all(id.xy == uint2(1,1)) || 
+        all(id.xy == uint2((uint)width-2,1)) || 
+        all(id.xy == uint2(1,(uint)height-2)) || 
+        all(id.xy == uint2((uint)width-2,(uint)height-2))
+        ) {
+            avgDensity /= 2.0;
+        } else if(id.x == 1 || id.y == 1 || id.x == (uint)width-2 || id.y == (uint)width-2) {
+            avgDensity /= 3.0;
+        } else {
+            avgDensity /= 4.0;
+        }
+        Result[id.xy] = float4(lerp(Result[id.xy].x, avgDensity, diff), Result[id.xy].yzw);
     }
 }

@@ -11,42 +11,46 @@ public class CsToCamera : MonoBehaviour
 
     enum BoundaryType { Wall, Wrap }
 
-    public RenderTexture texture;
+    public RenderTexture fluid;
     public ComputeBuffer buffer;
     private float time;
 
+    private int testShader;
+    private int calculateDensity;
+
     void Start()
     {
-        texture = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
-        texture.enableRandomWrite = true;
-        texture.Create();
+        // Set proper kernels
+        testShader = compute.FindKernel("CSMain");
+        calculateDensity = compute.FindKernel("CalculateDensity");
 
-        Debug.Log(compute);
+        // Create an empty texture
+        fluid = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
+        fluid.enableRandomWrite = true;
+        fluid.Create();
 
-        int kernel = compute.FindKernel("CSMain");
-        compute.SetTexture(kernel, "Result", texture);
-        compute.Dispatch(kernel, width/8, height/8, 1);
+        // Set variables
+        compute.SetFloat("width", width);
+        compute.SetFloat("height", height);
+	    compute.SetFloat("time", time);
+
+        // Create an environment
+        compute.SetTexture(testShader, "Result", fluid);
+        compute.Dispatch(testShader, width/8, height/8, 1);
     }
 
     void OnRenderImage(RenderTexture src, RenderTexture dest)
     {
-        if(texture == null) {
-            texture = new RenderTexture(width, height, 24);
-            texture.enableRandomWrite = true;
-            texture.Create();
-        }
-        compute.SetTexture(0, "Result", texture);
-        compute.SetFloat("width", width);
-        compute.SetFloat("height", height);
-	    time += Time.deltaTime; Debug.Log(time);
-	    compute.SetFloat("time", time);
-        compute.Dispatch(0, width/8, height/8, 1);
-
-        Graphics.Blit(texture, dest);
+        // Update the density
+        compute.SetTexture(calculateDensity, "Result", fluid);
+        compute.Dispatch(calculateDensity, width/8, height/8, 1);
+        Graphics.Blit(fluid, dest);
     }
 
     void Update()
     {
-        
+        // Handle Time
+        time += Time.deltaTime;
+        compute.SetFloat("time", time);
     }
 }

@@ -5,8 +5,11 @@ using UnityEngine;
 public class CsToCamera : MonoBehaviour
 {
     [SerializeField] private ComputeShader compute;
+    [SerializeField] private BoundaryType boundaryType;
     [SerializeField] private int width = 256;
     [SerializeField] private int height = 256;
+
+    enum BoundaryType { Wall, Wrap }
 
     public RenderTexture texture;
     public ComputeBuffer buffer;

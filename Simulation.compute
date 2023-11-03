@@ -1,9 +1,6 @@
-// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
-RWTexture2D<float4> Result;
+RWTexture2D<float4> Result; // density, velocity.x, velocity.y, empty
 float width;
 float height;
 float time;
@@ -12,4 +9,14 @@ float time;
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     Result[id.xy] = float4(id.x/width, id.y/height, sin(time/1.0)/2.0 + 0.5, 1.0);
+}
+
+[numthreads(8,8,1)]
+void CalculateDensity (uint id : SV_DISPATCHTHREADID)
+{
+    if(id.x != 0 || id.y != 0 || id.x != width-1 || id.y != width-1) {
+        Result[id.xy] = float4(1.0, 0.0, 0.0, 1.0);
+    } else {
+        Result[id.xy] = float4(0.0, 0.0, 0.0, 1.0);
+    }
 }

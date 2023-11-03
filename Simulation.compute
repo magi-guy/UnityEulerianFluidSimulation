@@ -12,7 +12,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 }
 
 [numthreads(8,8,1)]
-void CalculateDensity (uint id : SV_DISPATCHTHREADID)
+void CalculateDensity (uint3 id : SV_DISPATCHTHREADID)
 {
     if(id.x < 1 || id.y < 1 || id.x + 2 > (uint)width || id.y + 2 > (uint)width) {
         Result[id.xy] = float4(0.0, 0.0, 0.0, 1.0);

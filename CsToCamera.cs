@@ -42,11 +42,15 @@ public class CsToCamera : MonoBehaviour
         compute.Dispatch(testShader, width/8, height/8, 1);
     }
 
-    void OnRenderImage(RenderTexture src, RenderTexture dest)
-    {
+    void FixedUpdate() {
         // Update the density
         compute.SetTexture(calculateDensity, "Result", fluid);
         compute.Dispatch(calculateDensity, width/8, height/8, 1);
+    }
+
+    void OnRenderImage(RenderTexture src, RenderTexture dest)
+    {
+        // Render to camera
         Graphics.Blit(fluid, dest);
     }
 

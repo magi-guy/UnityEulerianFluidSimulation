@@ -6,6 +6,7 @@ public class CsToCamera : MonoBehaviour
 {
     [SerializeField] private ComputeShader compute;
     [SerializeField] private BoundaryType boundaryType;
+    [SerializeField] private Vector2[] sources;
     [SerializeField] private int width = 256;
     [SerializeField] private int height = 256;
     [SerializeField] private float diffusion = .6f;
@@ -13,9 +14,10 @@ public class CsToCamera : MonoBehaviour
     enum BoundaryType { Wall, Wrap }
 
     public RenderTexture fluid;
-    public ComputeBuffer buffer;
+    public ComputeBuffer sourcesBuffer;
     private float time;
 
+    // Kernel indecies
     private int testShader;
     private int calculateDensity;
 
@@ -32,6 +34,7 @@ public class CsToCamera : MonoBehaviour
 
         // Set variables
         compute.SetFloat("time", time);
+        compute.SetFloat("timStep", Time.fixedDeltaTime);
         compute.SetFloat("width", width);
         compute.SetFloat("height", height);
         compute.SetFloat("diff", diffusion);
@@ -43,6 +46,13 @@ public class CsToCamera : MonoBehaviour
     }
 
     void FixedUpdate() {
+        // Send sources to the compute shader
+        if(sourcesBuffer != null) {sourcesBuffer.Release();}
+        sourcesBuffer = new ComputeBuffer(sources.Length, sizeof(int)*2);
+        sourcesBuffer.SetData(sources);
+        compute.SetBuffer(calculateDensity, "sources", sourcesBuffer);
+        
+        
         // Update the density
         compute.SetTexture(calculateDensity, "Result", fluid);
         compute.Dispatch(calculateDensity, width/8, height/8, 1);
@@ -59,5 +69,9 @@ public class CsToCamera : MonoBehaviour
         // Handle Time
         time += Time.deltaTime;
         compute.SetFloat("time", time);
+    }
+
+    void OnDestroy() {
+        sourcesBuffer.Release();
     }
 }

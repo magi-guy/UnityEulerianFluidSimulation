@@ -2,7 +2,9 @@
 #pragma kernel CalculateDensity
 
 RWTexture2D<float4> Result; // density, velocity.x, velocity.y, empty
+RWStructuredBuffer<uint2> sources;
 float time;
+float timeStep;
 float width;
 float height;
 float diff;
@@ -17,6 +19,14 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 [numthreads(8,8,1)]
 void CalculateDensity (uint3 id : SV_DISPATCHTHREADID)
 {
+    // Increase Sources
+    for(uint i=0; i<sources.Length; i++) {
+        if(any(sources[i] == id.xy)) {
+            Result[id.xy] = float4(timeStep*10, 1.0, 0.0, 0.0);
+            //break;
+        }
+    }
+    // Set density to the average of the neighbors
     if(id.x == 0 || id.y == 0 || id.x == (uint)width-1 || id.y == (uint)width-1) {
         Result[id.xy] = float4(0.0, 0.0, 0.0, 1.0);
     } else {

@@ -222,7 +222,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   compute: {fileID: 7200000, guid: 061ca29eb27930f45befa9be3917a9f7, type: 3}
   boundaryType: 0
-  width: 256
-  height: 256
+  sources:
+  - {x: 10, y: 10}
+  width: 32
+  height: 32
   diffusion: 0.6
   fluid: {fileID: 0}

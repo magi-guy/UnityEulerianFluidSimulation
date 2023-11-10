@@ -1,0 +1,47 @@
+# Unity generated
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Mm]emoryCaptures/
+
+# VSCode specific
+.vscode/
+
+# User-specific files
+*.userprefs
+*.user
+
+# Unity3D asset server
+*.pidb.meta
+
+# Unity3D backups
+*.bak
+
+# Rider
+.idea/
+
+# Play Records
+*.playlog
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+
+# Kinds of files
+ehthumbs.db
+Thumbs.db

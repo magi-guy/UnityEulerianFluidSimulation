@@ -1,3 +1,12 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Unity project file types
+*.meta linguist-language=JSON
+*.prefab linguist-language=XML
+*.unity linguist-language=JSON
+*.asset linguist-language=JSON
+
+# Shader files
+*.shader linguist-language=HLSL
 *.compute linguist-language=HLSL
+
+# C# scripts
+*.cs linguist-language=C#

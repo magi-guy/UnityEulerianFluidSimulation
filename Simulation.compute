@@ -2,7 +2,7 @@
 #pragma kernel CalculateDensity
 
 RWTexture2D<float4> Result; // density, velocity.x, velocity.y, empty
-RWStructuredBuffer<uint2> sources;
+RWStructuredBuffer<float2> sources; // is only a float2 because the data would get corrupted as a uint2, so this must be cast to uint2 whenever used
 float time;
 float timeStep;
 float width;
@@ -10,7 +10,7 @@ float height;
 float diff;
 
 [numthreads(8,8,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void CSMain (uint3 id : SV_DISPATCHTHREADID)
 {
     float1 widthMod = width/32.0;
     Result[id.xy] = float4(ceil(sin(id.x/widthMod)), 0.0, 0.0, 1.0);
@@ -21,11 +21,12 @@ void CalculateDensity (uint3 id : SV_DISPATCHTHREADID)
 {
     // Increase Sources
     for(uint i=0; i<sources.Length; i++) {
-        if(any(sources[i] == id.xy)) {
-            Result[id.xy] = float4(timeStep*10, 1.0, 0.0, 0.0);
-            //break;
+        if(all((uint2)sources[i] == id.xy)) {
+            Result[id.xy] += float4(timeStep*100.0, 0.0, 0.0, 0.0);
+            break;
         }
     }
+
     // Set density to the average of the neighbors
     if(id.x == 0 || id.y == 0 || id.x == (uint)width-1 || id.y == (uint)width-1) {
         Result[id.xy] = float4(0.0, 0.0, 0.0, 1.0);

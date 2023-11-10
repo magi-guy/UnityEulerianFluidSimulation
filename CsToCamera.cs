@@ -34,7 +34,7 @@ public class CsToCamera : MonoBehaviour
 
         // Set variables
         compute.SetFloat("time", time);
-        compute.SetFloat("timStep", Time.fixedDeltaTime);
+        compute.SetFloat("timeStep", Time.fixedDeltaTime);
         compute.SetFloat("width", width);
         compute.SetFloat("height", height);
         compute.SetFloat("diff", diffusion);
@@ -46,9 +46,11 @@ public class CsToCamera : MonoBehaviour
     }
 
     void FixedUpdate() {
+
+
         // Send sources to the compute shader
         if(sourcesBuffer != null) {sourcesBuffer.Release();}
-        sourcesBuffer = new ComputeBuffer(sources.Length, sizeof(int)*2);
+        sourcesBuffer = new ComputeBuffer(sources.Length, 8);
         sourcesBuffer.SetData(sources);
         compute.SetBuffer(calculateDensity, "sources", sourcesBuffer);
         

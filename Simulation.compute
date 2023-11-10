@@ -1,7 +1,16 @@
 #pragma kernel CSMain
 #pragma kernel CalculateDensity
+#pragma kernel Advect
 
-RWTexture2D<float4> Result; // density, velocity.x, velocity.y, empty
+struct cell
+{
+    float2 position;
+    float1 density;
+    float2 velocity;
+};
+
+RWTexture2D<float4> Result;
+RWStructuredBuffer<cell> environment;
 RWStructuredBuffer<float2> sources; // is only a float2 because the data would get corrupted as a uint2, so this must be cast to uint2 whenever used
 float timeStep;
 float width;
@@ -14,7 +23,7 @@ void CSMain (uint3 id : SV_DISPATCHTHREADID)
     if(id.x == 0 || id.x == (uint)width-1 || id.y == 0 || id.y == (uint)height-1) {return;}
     
     float1 widthMod = width/32.0;
-    Result[id.xy] = float4(ceil(sin(id.x/widthMod)), 0.0, 0.0, 1.0);
+    Result[id.xy] = float4(ceil(sin(id.x/widthMod)), 0.0, -10.0, 1.0);
 }
 
 [numthreads(8,8,1)]
@@ -45,4 +54,20 @@ void CalculateDensity (uint3 id : SV_DISPATCHTHREADID)
         avgDensity /= 4.0;
     }
     Result[id.xy] = float4(lerp(Result[id.xy].x, avgDensity, diff), Result[id.xy].yzw);
+}
+
+[numthreads(8,8,1)]
+void Advect (uint3 id : SV_DISPATCHTHREADID)
+{
+    if(id.x == 0 || id.x == (uint)width-1 || id.y == 0 || id.y == (uint)height-1) {return;}
+
+    // Backtrack to find what density was carried here by the velocity field
+    float2 backPos = (float2)id.xy - Result[id.xy].yz * timeStep;
+    float1 backDensity = lerp(
+        lerp(Result[(int2)backPos].x, Result[uint2(ceil(backPos.x),(uint)backPos.y)].x, backPos.x % 1.0),
+        lerp(Result[uint2((int)backPos.x, ceil(backPos.y))].x, Result[ceil(backPos)].x, backPos.x % 1.0),
+        backPos.y % 1.0
+    );
+
+    Result[id.xy] = float4(backDensity, Result[id.xy].yzw);
 }

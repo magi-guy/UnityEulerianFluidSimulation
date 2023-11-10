@@ -20,12 +20,14 @@ public class CsToCamera : MonoBehaviour
     // Kernel indecies
     private int testShader;
     private int calculateDensity;
+    private int advect;
 
     void Start()
     {
         // Set proper kernels
         testShader = compute.FindKernel("CSMain");
         calculateDensity = compute.FindKernel("CalculateDensity");
+        advect = compute.FindKernel("Advect");
 
         // Create an empty texture
         fluid = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
@@ -55,6 +57,8 @@ public class CsToCamera : MonoBehaviour
         // Update the density
         compute.SetTexture(calculateDensity, "Result", fluid);
         compute.Dispatch(calculateDensity, width/8, height/8, 1);
+        compute.SetTexture(advect, "Result", fluid);
+        compute.Dispatch(advect, width/8, height/8, 1);
     }
 
     void OnRenderImage(RenderTexture src, RenderTexture dest)

@@ -1,4 +1,5 @@
 #pragma kernel CSMain
+#pragma kernel BufferToTexture
 #pragma kernel CalculateDensity
 #pragma kernel Advect
 
@@ -9,8 +10,7 @@ struct cell
     float2 velocity;
 };
 
-RWTexture2D<float4> Result;
-RWStructuredBuffer<cell> environment;
+RWStructuredBuffer<cell> Fluid;
 RWStructuredBuffer<float2> sources; // is only a float2 because the data would get corrupted as a uint2, so this must be cast to uint2 whenever used
 float timeStep;
 float width;
@@ -20,15 +20,23 @@ float diff;
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DISPATCHTHREADID)
 {
+    uint index = id.y * width + id.x;
     if(id.x == 0 || id.x == (uint)width-1 || id.y == 0 || id.y == (uint)height-1) {return;}
     
     float1 widthMod = width/32.0;
-    Result[id.xy] = float4(ceil(sin(id.x/widthMod)), 0.0, -10.0, 1.0);
+    Fluid[index] = float4(ceil(sin(id.x/widthMod)), 0.0, -10.0, 1.0);
+}
+
+[numthreads(8,8,1)]
+void BufferToTexture (uint3 id : SV_DISPATCHTHREADID)
+{
+
 }
 
 [numthreads(8,8,1)]
 void CalculateDensity (uint3 id : SV_DISPATCHTHREADID)
 {
+    uint index = id.y * width + id.x;
     if(id.x == 0 || id.x == (uint)width-1 || id.y == 0 || id.y == (uint)height-1) {return;}
 
     //Increase Sources

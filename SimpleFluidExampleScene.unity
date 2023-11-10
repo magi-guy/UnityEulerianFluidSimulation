@@ -224,7 +224,7 @@ MonoBehaviour:
   boundaryType: 0
   sources:
   - {x: 16, y: 16}
-  width: 32
-  height: 32
-  diffusion: 0.6
+  width: 256
+  height: 256
+  diffusion: 1
   fluid: {fileID: 0}

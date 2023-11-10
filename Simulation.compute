@@ -3,7 +3,6 @@
 
 RWTexture2D<float4> Result; // density, velocity.x, velocity.y, empty
 RWStructuredBuffer<float2> sources; // is only a float2 because the data would get corrupted as a uint2, so this must be cast to uint2 whenever used
-float time;
 float timeStep;
 float width;
 float height;
@@ -12,6 +11,8 @@ float diff;
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DISPATCHTHREADID)
 {
+    if(id.x == 0 || id.x == (uint)width-1 || id.y == 0 || id.y == (uint)height-1) {return;}
+    
     float1 widthMod = width/32.0;
     Result[id.xy] = float4(ceil(sin(id.x/widthMod)), 0.0, 0.0, 1.0);
 }
@@ -19,31 +20,29 @@ void CSMain (uint3 id : SV_DISPATCHTHREADID)
 [numthreads(8,8,1)]
 void CalculateDensity (uint3 id : SV_DISPATCHTHREADID)
 {
-    // Increase Sources
+    if(id.x == 0 || id.x == (uint)width-1 || id.y == 0 || id.y == (uint)height-1) {return;}
+
+    //Increase Sources
     for(uint i=0; i<sources.Length; i++) {
         if(all((uint2)sources[i] == id.xy)) {
-            Result[id.xy] += float4(timeStep*100.0, 0.0, 0.0, 0.0);
+            Result[id.xy] += float4(timeStep*1.0, 0.0, 0.0, 0.0);
             break;
         }
     }
 
-    // Set density to the average of the neighbors
-    if(id.x == 0 || id.y == 0 || id.x == (uint)width-1 || id.y == (uint)width-1) {
-        Result[id.xy] = float4(0.0, 0.0, 0.0, 1.0);
+    // Set density to the average of the neighbor's densities
+    float1 avgDensity = Result[uint2(id.x-1, id.y)].x + Result[uint2(id.x, id.y-1)].x + Result[uint2(id.x+1, id.y)].x + Result[uint2(id.x, id.y+1)].x;
+    if(
+    all(id.xy == uint2(1,1)) || 
+    all(id.xy == uint2((uint)width-2,1)) || 
+    all(id.xy == uint2(1,(uint)height-2)) || 
+    all(id.xy == uint2((uint)width-2,(uint)height-2))
+    ) {
+        avgDensity /= 2.0;
+    } else if(id.x == 1 || id.y == 1 || id.x == (uint)width-2 || id.y == (uint)width-2) {
+        avgDensity /= 3.0;
     } else {
-        float1 avgDensity = Result[uint2(id.x-1, id.y)].x + Result[uint2(id.x, id.y-1)].x + Result[uint2(id.x+1, id.y)].x + Result[uint2(id.x, id.y+1)].x;
-        if(
-        all(id.xy == uint2(1,1)) || 
-        all(id.xy == uint2((uint)width-2,1)) || 
-        all(id.xy == uint2(1,(uint)height-2)) || 
-        all(id.xy == uint2((uint)width-2,(uint)height-2))
-        ) {
-            avgDensity /= 2.0;
-        } else if(id.x == 1 || id.y == 1 || id.x == (uint)width-2 || id.y == (uint)width-2) {
-            avgDensity /= 3.0;
-        } else {
-            avgDensity /= 4.0;
-        }
-        Result[id.xy] = float4(lerp(Result[id.xy].x, avgDensity, diff), Result[id.xy].yzw);
+        avgDensity /= 4.0;
     }
+    Result[id.xy] = float4(lerp(Result[id.xy].x, avgDensity, diff), Result[id.xy].yzw);
 }

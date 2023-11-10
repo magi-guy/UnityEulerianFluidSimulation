@@ -33,7 +33,6 @@ public class CsToCamera : MonoBehaviour
         fluid.Create();
 
         // Set variables
-        compute.SetFloat("time", time);
         compute.SetFloat("timeStep", Time.fixedDeltaTime);
         compute.SetFloat("width", width);
         compute.SetFloat("height", height);
@@ -46,8 +45,6 @@ public class CsToCamera : MonoBehaviour
     }
 
     void FixedUpdate() {
-
-
         // Send sources to the compute shader
         if(sourcesBuffer != null) {sourcesBuffer.Release();}
         sourcesBuffer = new ComputeBuffer(sources.Length, 8);
@@ -64,13 +61,6 @@ public class CsToCamera : MonoBehaviour
     {
         // Render to camera
         Graphics.Blit(fluid, dest);
-    }
-
-    void Update()
-    {
-        // Handle Time
-        time += Time.deltaTime;
-        compute.SetFloat("time", time);
     }
 
     void OnDestroy() {

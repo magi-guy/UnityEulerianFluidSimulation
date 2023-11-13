@@ -3,6 +3,9 @@
 #pragma kernel CalculateDensity
 #pragma kernel Advect
 
+#define TO_BUFFER_INDEX(uv) \
+    (uv.y * width + uv.x)
+
 struct cell
 {
     float2 position;
@@ -11,7 +14,7 @@ struct cell
 };
 
 RWStructuredBuffer<cell> Fluid;
-RWStructuredBuffer<float2> sources; // is only a float2 because the data would get corrupted as a uint2, so this must be cast to uint2 whenever used
+RWStructuredBuffer<float2> sources; // must be cast to uint2 whenever used
 float timeStep;
 float width;
 float height;

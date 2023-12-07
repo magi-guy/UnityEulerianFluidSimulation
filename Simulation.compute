@@ -26,11 +26,11 @@ float diff;
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DISPATCHTHREADID)
 {
-    uint index = id.y * width + id.x;
+    uint index = TO_BUFFER_INDEX(id);
     if(id.x == 0 || id.x == (uint)width-1 || id.y == 0 || id.y == (uint)height-1) {return;}
     
     float1 widthMod = width/32.0;
-    Fluid[index] = float4(ceil(sin(id.x/widthMod)), 0.0, -10.0, 1.0);
+    Fluid[index].density = ceil(sin(id.x/widthMod));
 }
 
 [numthreads(8,8,1)]
@@ -38,26 +38,29 @@ void BufferToTexture (uint3 id : SV_DISPATCHTHREADID)
 {
     uint index = TO_BUFFER_INDEX(id);
 
-    Result[id] = Fluid[index];
+    Result[id.xy] = float4(Fluid[index].density, Fluid[index].velocity, 1.0);
 
 }
 
 [numthreads(8,8,1)]
 void CalculateDensity (uint3 id : SV_DISPATCHTHREADID)
 {
-    uint index = id.y * width + id.x;
+    uint index = TO_BUFFER_INDEX(id);
     if(id.x == 0 || id.x == (uint)width-1 || id.y == 0 || id.y == (uint)height-1) {return;}
 
     //Increase Sources
     for(uint i=0; i<sources.Length; i++) {
         if(all((uint2)sources[i] == id.xy)) {
-            Fluid[id.xy] += float4(timeStep*1.0, 0.0, 0.0, 0.0);
+            Fluid[index].density += 1.0;
             break;
         }
     }
 
     // Set density to the average of the neighbor's densities
-    float1 avgDensity = Fluid[uint2(id.x-1, id.y)].x + Fluid[uint2(id.x, id.y-1)].x + Fluid[uint2(id.x+1, id.y)].x + Fluid[uint2(id.x, id.y+1)].x;
+    float1 avgDensity = Fluid[TO_BUFFER_INDEX(uint2(id.x-1, id.y))].density + 
+                        Fluid[TO_BUFFER_INDEX(uint2(id.x, id.y-1))].density + 
+                        Fluid[TO_BUFFER_INDEX(uint2(id.x+1, id.y))].density + 
+                        Fluid[TO_BUFFER_INDEX(uint2(id.x, id.y+1))].density;
     if(
     all(id.xy == uint2(1,1)) || 
     all(id.xy == uint2((uint)width-2,1)) || 
@@ -70,21 +73,26 @@ void CalculateDensity (uint3 id : SV_DISPATCHTHREADID)
     } else {
         avgDensity /= 4.0;
     }
-    Fluid[id.xy] = float4(lerp(Fluid[id.xy].x, avgDensity, diff), Fluid[id.xy].yzw);
+    Fluid[index].density = lerp(Fluid[index].density, avgDensity, diff);
 }
 
 [numthreads(8,8,1)]
 void Advect (uint3 id : SV_DISPATCHTHREADID)
 {
+    uint index = TO_BUFFER_INDEX(id);
     if(id.x == 0 || id.x == (uint)width-1 || id.y == 0 || id.y == (uint)height-1) {return;}
 
     // Backtrack to find what density was carried here by the velocity field
-    float2 backPos = (float2)id.xy - Fluid[id.xy].yz * timeStep;
+    float2 backPos = (float2)id.xy - Fluid[index].velocity * timeStep;
     float1 backDensity = lerp(
-        lerp(Fluid[(int2)backPos].x, Fluid[uint2(ceil(backPos.x),(uint)backPos.y)].x, backPos.x % 1.0),
-        lerp(Fluid[uint2((int)backPos.x, ceil(backPos.y))].x, Fluid[ceil(backPos)].x, backPos.x % 1.0),
+        lerp(Fluid[TO_BUFFER_INDEX( uint2(backPos.x, backPos.y) )].density, 
+            Fluid[TO_BUFFER_INDEX( uint2(ceil(backPos.x),(uint)backPos.y) )].density, 
+            backPos.x % 1.0),
+        lerp(Fluid[TO_BUFFER_INDEX( uint2((int)backPos.x, ceil(backPos.y)) )].density, 
+            Fluid[TO_BUFFER_INDEX( ceil(backPos) )].density, 
+            backPos.x % 1.0),
         backPos.y % 1.0
     );
 
-    Fluid[id.xy] = float4(backDensity, Fluid[id.xy].yzw);
+    Fluid[index].density = backDensity;
 }

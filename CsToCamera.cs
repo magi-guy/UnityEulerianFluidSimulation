@@ -14,9 +14,10 @@ public class CsToCamera : MonoBehaviour
     enum BoundaryType { Wall, Wrap }
 
     public ComputeBuffer fluid;
-    public RenderTexture fluidTexture;
-    public ComputeBuffer sourcesBuffer;
+    private RenderTexture fluidTexture;
+    private ComputeBuffer sourcesBuffer;
     private float time;
+    private bool doSources;
 
     // Kernel indecies
     private int testShader;
@@ -35,7 +36,11 @@ public class CsToCamera : MonoBehaviour
         // Create the fluid buffer
         fluid = new ComputeBuffer(width * height, 20);
 
+        // Check if sources exist
+        doSources = sources.Length > 0;
+
         // Set variables
+        compute.SetBool("doSources", doSources);
         compute.SetFloat("timeStep", Time.fixedDeltaTime);
         compute.SetFloat("width", width);
         compute.SetFloat("height", height);
@@ -48,12 +53,13 @@ public class CsToCamera : MonoBehaviour
     }
 
     void FixedUpdate() {
-        // Send sources to the compute shader
-        if(sourcesBuffer != null) {sourcesBuffer.Release();}
-        sourcesBuffer = new ComputeBuffer(sources.Length, 8);
-        sourcesBuffer.SetData(sources);
-        compute.SetBuffer(calculateDensity, "sources", sourcesBuffer);
-        
+        if(doSources) {
+            // Send sources to the compute shader
+            if(sourcesBuffer != null) {sourcesBuffer.Release();}
+            sourcesBuffer = new ComputeBuffer(sources.Length, 8);
+            sourcesBuffer.SetData(sources);
+            compute.SetBuffer(calculateDensity, "sources", sourcesBuffer);
+        }
         
         // Update the density
         compute.SetBuffer(calculateDensity, "Fluid", fluid);
@@ -79,6 +85,7 @@ public class CsToCamera : MonoBehaviour
     }
 
     void OnDestroy() {
-        sourcesBuffer.Release();
+        if(doSources)
+            sourcesBuffer.Release();
     }
 }

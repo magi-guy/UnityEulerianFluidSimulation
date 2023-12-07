@@ -5,6 +5,8 @@
 
 #define TO_BUFFER_INDEX(uv) \
     (uv.y * width + uv.x)
+#define TO_TEXTURE_COORDS(i) \
+    (uint2( (uint)(i / width), i % width ))
 
 struct cell
 {
@@ -14,6 +16,7 @@ struct cell
 };
 
 RWStructuredBuffer<cell> Fluid;
+RWTexture1D<float4> Result;
 RWStructuredBuffer<float2> sources; // must be cast to uint2 whenever used
 float timeStep;
 float width;
@@ -33,6 +36,9 @@ void CSMain (uint3 id : SV_DISPATCHTHREADID)
 [numthreads(8,8,1)]
 void BufferToTexture (uint3 id : SV_DISPATCHTHREADID)
 {
+    uint index = TO_BUFFER_INDEX(id);
+
+    
 
 }
 
@@ -45,13 +51,13 @@ void CalculateDensity (uint3 id : SV_DISPATCHTHREADID)
     //Increase Sources
     for(uint i=0; i<sources.Length; i++) {
         if(all((uint2)sources[i] == id.xy)) {
-            Result[id.xy] += float4(timeStep*1.0, 0.0, 0.0, 0.0);
+            Fluid[id.xy] += float4(timeStep*1.0, 0.0, 0.0, 0.0);
             break;
         }
     }
 
     // Set density to the average of the neighbor's densities
-    float1 avgDensity = Result[uint2(id.x-1, id.y)].x + Result[uint2(id.x, id.y-1)].x + Result[uint2(id.x+1, id.y)].x + Result[uint2(id.x, id.y+1)].x;
+    float1 avgDensity = Fluid[uint2(id.x-1, id.y)].x + Fluid[uint2(id.x, id.y-1)].x + Fluid[uint2(id.x+1, id.y)].x + Fluid[uint2(id.x, id.y+1)].x;
     if(
     all(id.xy == uint2(1,1)) || 
     all(id.xy == uint2((uint)width-2,1)) || 
@@ -64,7 +70,7 @@ void CalculateDensity (uint3 id : SV_DISPATCHTHREADID)
     } else {
         avgDensity /= 4.0;
     }
-    Result[id.xy] = float4(lerp(Result[id.xy].x, avgDensity, diff), Result[id.xy].yzw);
+    Fluid[id.xy] = float4(lerp(Fluid[id.xy].x, avgDensity, diff), Fluid[id.xy].yzw);
 }
 
 [numthreads(8,8,1)]
@@ -73,12 +79,12 @@ void Advect (uint3 id : SV_DISPATCHTHREADID)
     if(id.x == 0 || id.x == (uint)width-1 || id.y == 0 || id.y == (uint)height-1) {return;}
 
     // Backtrack to find what density was carried here by the velocity field
-    float2 backPos = (float2)id.xy - Result[id.xy].yz * timeStep;
+    float2 backPos = (float2)id.xy - Fluid[id.xy].yz * timeStep;
     float1 backDensity = lerp(
-        lerp(Result[(int2)backPos].x, Result[uint2(ceil(backPos.x),(uint)backPos.y)].x, backPos.x % 1.0),
-        lerp(Result[uint2((int)backPos.x, ceil(backPos.y))].x, Result[ceil(backPos)].x, backPos.x % 1.0),
+        lerp(Fluid[(int2)backPos].x, Fluid[uint2(ceil(backPos.x),(uint)backPos.y)].x, backPos.x % 1.0),
+        lerp(Fluid[uint2((int)backPos.x, ceil(backPos.y))].x, Fluid[ceil(backPos)].x, backPos.x % 1.0),
         backPos.y % 1.0
     );
 
-    Result[id.xy] = float4(backDensity, Result[id.xy].yzw);
+    Fluid[id.xy] = float4(backDensity, Fluid[id.xy].yzw);
 }

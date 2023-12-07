@@ -14,11 +14,13 @@ public class CsToCamera : MonoBehaviour
     enum BoundaryType { Wall, Wrap }
 
     public ComputeBuffer fluid;
+    public RenderTexture fluidTexture;
     public ComputeBuffer sourcesBuffer;
     private float time;
 
     // Kernel indecies
     private int testShader;
+    private int toTexture;
     private int calculateDensity;
     private int advect;
 
@@ -26,6 +28,7 @@ public class CsToCamera : MonoBehaviour
     {
         // Set proper kernels
         testShader = compute.FindKernel("CSMain");
+        toTexture = compute.FindKernel("BufferToTexture");
         calculateDensity = compute.FindKernel("CalculateDensity");
         advect = compute.FindKernel("Advect");
 
@@ -61,8 +64,18 @@ public class CsToCamera : MonoBehaviour
 
     void OnRenderImage(RenderTexture src, RenderTexture dest)
     {
+        if(fluidTexture == null) {
+            fluidTexture = new RenderTexture(width, height, 24);
+            fluidTexture.enableRandomWrite = true;
+            fluidTexture.Create();
+        }
+
+        compute.SetBuffer(toTexture, "Fluid", fluid);
+        compute.SetTexture(toTexture, "Result", fluidTexture);
+        compute.Dispatch(toTexture, width/8, height/8, 1);
+
         // Render to camera
-        Graphics.Blit(fluid, dest);
+        Graphics.Blit(fluidTexture, dest);
     }
 
     void OnDestroy() {

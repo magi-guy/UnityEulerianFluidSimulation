@@ -16,7 +16,7 @@ struct cell
 };
 
 RWStructuredBuffer<cell> Fluid;
-RWTexture1D<float4> Result;
+RWTexture2D<float4> Result;
 RWStructuredBuffer<float2> sources; // must be cast to uint2 whenever used
 float timeStep;
 float width;
@@ -38,7 +38,7 @@ void BufferToTexture (uint3 id : SV_DISPATCHTHREADID)
 {
     uint index = TO_BUFFER_INDEX(id);
 
-    
+    Result[id] = Fluid[index];
 
 }
 

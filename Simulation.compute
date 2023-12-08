@@ -8,7 +8,7 @@
 #define TO_TEXTURE_COORDS(i) \
     (uint2( (uint)(i / width), i % width ))
 #define VELOCITY_SCALED(v) \
-    (atan(length(v)/10.0))
+    (0.636619772*atan(length(v)/10.0))
 #define F(x, y) \
     (float2(-y, x))
 
@@ -35,11 +35,12 @@ void CSMain (uint3 id : SV_DISPATCHTHREADID)
     uint index = TO_BUFFER_INDEX(id);
     if(id.x == 0 || id.x == (uint)width-1 || id.y == 0 || id.y == (uint)height-1) {return;}
     
+    float1 sizeMod = 32.0;
     // Starting Densities
-    float1 widthMod = width/32.0;
     Fluid[index].density = (id.y % 5 == 0) ? 1 : 0;
     //Starting Velocities
-    Fluid[index].velocity = F((int)(id.x-width/2), (int)(id.y-height/2));
+    //Fluid[index].velocity = F((int)(id.x-width/2), (int)(id.y-height/2))/sizeMod;
+    Fluid[index].velocity = float2(0.0, 0.0);
     // Test values for debugging
     //Fluid[index].testValue = 0.0;
 }

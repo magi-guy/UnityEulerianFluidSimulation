@@ -17,7 +17,6 @@ public class CsToCamera : MonoBehaviour
     private RenderTexture fluidTexture;
     private ComputeBuffer sourcesBuffer;
     private float time;
-    private bool doSources;
 
     // Kernel indecies
     private int testShader;
@@ -36,11 +35,8 @@ public class CsToCamera : MonoBehaviour
         // Create the fluid buffer
         fluid = new ComputeBuffer(width * height, 20);
 
-        // Check if sources exist
-        doSources = sources.Length > 0;
-
         // Set variables
-        compute.SetBool("doSources", doSources);
+        compute.SetBool("doSources", sources.Length > 0);
         compute.SetFloat("timeStep", Time.fixedDeltaTime);
         compute.SetFloat("width", width);
         compute.SetFloat("height", height);
@@ -50,17 +46,25 @@ public class CsToCamera : MonoBehaviour
         // Create an environment
         compute.SetBuffer(testShader, "Fluid", fluid);
         compute.Dispatch(testShader, width/8, height/8, 1);
+
+        // Create a "fake" sources buffer if there are no sources
+        if(sources.Length == 0) {
+            sourcesBuffer = new ComputeBuffer(1, 8);
+        }
     }
 
     void FixedUpdate() {
-        if(doSources) {
+        // Check if there are any sources
+        compute.SetBool("doSources", sources.Length > 0);
+        if(sources.Length > 0) {
             // Send sources to the compute shader
             if(sourcesBuffer != null) {sourcesBuffer.Release();}
             sourcesBuffer = new ComputeBuffer(sources.Length, 8);
             sourcesBuffer.SetData(sources);
-            compute.SetBuffer(calculateDensity, "sources", sourcesBuffer);
         }
-        
+        // If there are no sources, the "fake" sources buffer is used
+        compute.SetBuffer(calculateDensity, "sources", sourcesBuffer);
+
         // Update the density
         compute.SetBuffer(calculateDensity, "Fluid", fluid);
         compute.Dispatch(calculateDensity, width/8, height/8, 1);
@@ -85,7 +89,6 @@ public class CsToCamera : MonoBehaviour
     }
 
     void OnDestroy() {
-        if(doSources)
-            sourcesBuffer.Release();
+        sourcesBuffer.Release();
     }
 }

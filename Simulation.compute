@@ -13,6 +13,7 @@ struct cell
     float2 position;
     float1 density;
     float2 velocity;
+    float1 testValue;
 };
 
 RWStructuredBuffer<cell> Fluid;
@@ -33,6 +34,7 @@ void CSMain (uint3 id : SV_DISPATCHTHREADID)
     float1 widthMod = width/32.0;
     Fluid[index].density = ceil(sin(id.x/widthMod));
     Fluid[index].velocity = float2(0.0, -4.0);
+    Fluid[index].testValue = 0.0;
 }
 
 [numthreads(8,8,1)]
@@ -40,7 +42,7 @@ void BufferToTexture (uint3 id : SV_DISPATCHTHREADID)
 {
     uint index = TO_BUFFER_INDEX(id);
 
-    Result[id.xy] = float4(Fluid[index].density, Fluid[index].velocity/10.0, 1.0);
+    Result[id.xy] = float4(Fluid[index].density, Fluid[index].velocity.y/10.0, Fluid[index].testValue, 1.0);
 
 }
 
@@ -52,7 +54,7 @@ void CalculateDensity (uint3 id : SV_DISPATCHTHREADID)
 
     //Increase Sources
     if(doSources) {
-        rln for(uint i=0; i<sources.Length; i++) {
+        for(uint i=0; i<sources.Length; i++) {
             if(all((uint2)sources[i] == id.xy)) {
                 Fluid[index].density += 1.0;
                 break;

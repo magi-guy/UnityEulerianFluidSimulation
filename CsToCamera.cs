@@ -7,14 +7,14 @@ public class CsToCamera : MonoBehaviour
     [SerializeField] private ComputeShader compute;
     [SerializeField] private BoundaryType boundaryType;
     [SerializeField] private Vector2[] sources;
-    [SerializeField] private int width = 256;
-    [SerializeField] private int height = 256;
-    [SerializeField] private float diffusion = .6f;
+    [SerializeField] private int width;
+    [SerializeField] private int height;
+    [SerializeField] private float diffusion;
 
     enum BoundaryType { Wall, Wrap }
 
     public ComputeBuffer fluid;
-    private RenderTexture fluidTexture;
+    public RenderTexture fluidTexture;
     private ComputeBuffer sourcesBuffer;
     private float time;
 

@@ -7,13 +7,17 @@
     (uv.y * width + uv.x)
 #define TO_TEXTURE_COORDS(i) \
     (uint2( (uint)(i / width), i % width ))
+#define VELOCITY_SCALED(v) \
+    (atan(length(v)/10.0))
+#define F(x, y) \
+    (float2(-y, x))
 
 struct cell
 {
     float2 position;
     float1 density;
     float2 velocity;
-    float1 testValue;
+    //float1 testValue;
 };
 
 RWStructuredBuffer<cell> Fluid;
@@ -31,10 +35,13 @@ void CSMain (uint3 id : SV_DISPATCHTHREADID)
     uint index = TO_BUFFER_INDEX(id);
     if(id.x == 0 || id.x == (uint)width-1 || id.y == 0 || id.y == (uint)height-1) {return;}
     
+    // Starting Densities
     float1 widthMod = width/32.0;
-    Fluid[index].density = ceil(sin(id.x/widthMod));
-    Fluid[index].velocity = float2(0.0, -4.0);
-    Fluid[index].testValue = 0.0;
+    Fluid[index].density = (id.y % 5 == 0) ? 1 : 0;
+    //Starting Velocities
+    Fluid[index].velocity = F((int)(id.x-width/2), (int)(id.y-height/2));
+    // Test values for debugging
+    //Fluid[index].testValue = 0.0;
 }
 
 [numthreads(8,8,1)]
@@ -42,7 +49,7 @@ void BufferToTexture (uint3 id : SV_DISPATCHTHREADID)
 {
     uint index = TO_BUFFER_INDEX(id);
 
-    Result[id.xy] = float4(Fluid[index].density, Fluid[index].velocity.y/10.0, Fluid[index].testValue, 1.0);
+    Result[id.xy] = float4(Fluid[index].density, Fluid[index].density, VELOCITY_SCALED(Fluid[index].velocity), 1.0);
 
 }
 
@@ -87,6 +94,7 @@ void Advect (uint3 id : SV_DISPATCHTHREADID)
 {
     uint index = TO_BUFFER_INDEX(id);
     if(id.x == 0 || id.x == (uint)width-1 || id.y == 0 || id.y == (uint)height-1) {return;}
+    if(id.x == 1 || id.x == (uint)width-2 || id.y == 1 || id.y == (uint)height-2) {return;}
 
     // Backtrack to find what density was carried here by the velocity field
     float2 backPos = (float2)id.xy - Fluid[index].velocity * timeStep;

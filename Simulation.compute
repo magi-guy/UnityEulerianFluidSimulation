@@ -1,15 +1,112 @@
-// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
+#pragma kernel BufferToTexture
+#pragma kernel CalculateDensity
+#pragma kernel Advect
 
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
+#define TO_BUFFER_INDEX(uv) \
+    (uv.y * width + uv.x)
+#define TO_TEXTURE_COORDS(i) \
+    (uint2( (uint)(i / width), i % width ))
+#define VELOCITY_SCALED(v) \
+    (atan(length(v)/10.0))
+#define F(x, y) \
+    (float2(-y, x))
+
+struct cell
+{
+    float2 position;
+    float1 density;
+    float2 velocity;
+    //float1 testValue;
+};
+
+RWStructuredBuffer<cell> Fluid;
 RWTexture2D<float4> Result;
+RWStructuredBuffer<float2> sources; // must be cast to uint2 whenever used
+bool doSources;
+float timeStep;
 float width;
 float height;
-float time;
+float diff;
 
 [numthreads(8,8,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void CSMain (uint3 id : SV_DISPATCHTHREADID)
 {
-    Result[id.xy] = float4(id.x/width, id.y/height, sin(time/1.0)/2.0 + 0.5, 1.0);
+    uint index = TO_BUFFER_INDEX(id);
+    if(id.x == 0 || id.x == (uint)width-1 || id.y == 0 || id.y == (uint)height-1) {return;}
+    
+    // Starting Densities
+    float1 widthMod = width/32.0;
+    Fluid[index].density = (id.y % 5 == 0) ? 1 : 0;
+    //Starting Velocities
+    Fluid[index].velocity = F((int)(id.x-width/2), (int)(id.y-height/2));
+    // Test values for debugging
+    //Fluid[index].testValue = 0.0;
+}
+
+[numthreads(8,8,1)]
+void BufferToTexture (uint3 id : SV_DISPATCHTHREADID)
+{
+    uint index = TO_BUFFER_INDEX(id);
+
+    Result[id.xy] = float4(Fluid[index].density, Fluid[index].density, VELOCITY_SCALED(Fluid[index].velocity), 1.0);
+
+}
+
+[numthreads(8,8,1)]
+void CalculateDensity (uint3 id : SV_DISPATCHTHREADID)
+{
+    uint index = TO_BUFFER_INDEX(id);
+    if(id.x == 0 || id.x == (uint)width-1 || id.y == 0 || id.y == (uint)height-1) {return;}
+
+    //Increase Sources
+    if(doSources) {
+        for(uint i=0; i<sources.Length; i++) {
+            if(all((uint2)sources[i] == id.xy)) {
+                Fluid[index].density += 1.0;
+                break;
+            }
+        }
+    }
+
+    // Set density to the average of the neighbor's densities
+    float1 avgDensity = Fluid[TO_BUFFER_INDEX(uint2(id.x-1, id.y))].density + 
+                        Fluid[TO_BUFFER_INDEX(uint2(id.x, id.y-1))].density + 
+                        Fluid[TO_BUFFER_INDEX(uint2(id.x+1, id.y))].density + 
+                        Fluid[TO_BUFFER_INDEX(uint2(id.x, id.y+1))].density;
+    if(
+    all(id.xy == uint2(1,1)) || 
+    all(id.xy == uint2((uint)width-2,1)) || 
+    all(id.xy == uint2(1,(uint)height-2)) || 
+    all(id.xy == uint2((uint)width-2,(uint)height-2))
+    ) {
+        avgDensity /= 2.0;
+    } else if(id.x == 1 || id.y == 1 || id.x == (uint)width-2 || id.y == (uint)width-2) {
+        avgDensity /= 3.0;
+    } else {
+        avgDensity /= 4.0;
+    }
+    Fluid[index].density = lerp(Fluid[index].density, avgDensity, diff);
+}
+
+[numthreads(8,8,1)]
+void Advect (uint3 id : SV_DISPATCHTHREADID)
+{
+    uint index = TO_BUFFER_INDEX(id);
+    if(id.x == 0 || id.x == (uint)width-1 || id.y == 0 || id.y == (uint)height-1) {return;}
+    if(id.x == 1 || id.x == (uint)width-2 || id.y == 1 || id.y == (uint)height-2) {return;}
+
+    // Backtrack to find what density was carried here by the velocity field
+    float2 backPos = (float2)id.xy - Fluid[index].velocity * timeStep;
+    float1 backDensity = lerp(
+        lerp(Fluid[TO_BUFFER_INDEX( uint2(backPos.x, backPos.y) )].density, 
+            Fluid[TO_BUFFER_INDEX( uint2(ceil(backPos.x),(uint)backPos.y) )].density, 
+            backPos.x % 1.0),
+        lerp(Fluid[TO_BUFFER_INDEX( uint2((int)backPos.x, ceil(backPos.y)) )].density, 
+            Fluid[TO_BUFFER_INDEX( ceil(backPos) )].density, 
+            backPos.x % 1.0),
+        backPos.y % 1.0
+    );
+
+    Fluid[index].density = backDensity;
 }

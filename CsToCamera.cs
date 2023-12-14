@@ -18,6 +18,8 @@ public class CsToCamera : MonoBehaviour
     private ComputeBuffer sourcesBuffer;
     private float time;
 
+    private int frames;
+
     // Kernel indecies
     private int testShader;
     private int toTexture;
@@ -53,6 +55,12 @@ public class CsToCamera : MonoBehaviour
         }
     }
 
+    void Update() {
+        // Frame counter
+        frames += 1;
+        compute.SetInt("frames", frames);
+    }
+
     void FixedUpdate() {
         // Check if there are any sources
         compute.SetBool("doSources", sources.Length > 0);
@@ -66,6 +74,7 @@ public class CsToCamera : MonoBehaviour
         compute.SetBuffer(calculateDensity, "sources", sourcesBuffer);
 
         // Update the density
+        compute.SetFloat("diff", diffusion);
         compute.SetBuffer(calculateDensity, "Fluid", fluid);
         compute.Dispatch(calculateDensity, width/8, height/8, 1);
         compute.SetBuffer(advect, "Fluid", fluid);
